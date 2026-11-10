@@ -1013,10 +1013,25 @@ class Response:
             chunk_size=chunk_size, decode_unicode=decode_unicode
         ):
             if pending is not None:
+                # If decode_unicode is True, ensure both pending and chunk are strings
+                if decode_unicode:
+                    if isinstance(pending, bytes):
+                        pending = pending.decode("utf-8", errors="replace")
+                    if isinstance(chunk, bytes):
+                        chunk = chunk.decode("utf-8", errors="replace")
                 # TODO: remove cast after iter_lines rewrite
                 chunk = cast("str | bytes", pending + chunk)
 
+            # If decode_unicode=True but encoding is None, iter_content returns bytes.
+            # We decode using UTF-8 as a fallback to maintain consistent string output.
+            if decode_unicode and isinstance(chunk, bytes):
+                chunk = chunk.decode("utf-8", errors="replace")
+
             if delimiter:
+                if isinstance(chunk, bytes) and isinstance(delimiter, str):
+                    delimiter = delimiter.encode("utf-8")
+                elif isinstance(chunk, str) and isinstance(delimiter, bytes):
+                    delimiter = delimiter.decode("utf-8")
                 lines = chunk.split(delimiter)  # type: ignore[arg-type]
             else:
                 lines = chunk.splitlines()
