@@ -2182,6 +2182,61 @@ class TestRequests:
         next(it)
         assert len(list(it)) == 3
 
+    def test_response_iter_lines_decode_unicode_none_encoding(self):
+        """Test iter_lines with decode_unicode=True when encoding is None.
+        Regression test for issue #7645.
+        """
+        import io
+        r = requests.models.Response()
+        r.status_code = 200
+        r.raw = io.BytesIO(b"line one\nline two\nline three")
+        r.encoding = None
+
+        # Should not raise TypeError when delimiter is a string
+        result = list(r.iter_lines(decode_unicode=True, delimiter="\n"))
+        assert result == ["line one", "line two", "line three"]
+        # All results should be strings
+        assert all(isinstance(x, str) for x in result)
+
+    def test_response_iter_lines_decode_unicode_none_encoding_bytes_delimiter(self):
+        """Test iter_lines with decode_unicode=True, encoding=None, and bytes delimiter."""
+        import io
+        r = requests.models.Response()
+        r.status_code = 200
+        r.raw = io.BytesIO(b"line one\nline two\nline three")
+        r.encoding = None
+
+        # Should not raise TypeError when delimiter is bytes
+        result = list(r.iter_lines(decode_unicode=True, delimiter=b"\n"))
+        assert result == ["line one", "line two", "line three"]
+        assert all(isinstance(x, str) for x in result)
+
+    def test_response_iter_lines_decode_unicode_none_encoding_no_delimiter(self):
+        """Test iter_lines with decode_unicode=True, encoding=None, no delimiter."""
+        import io
+        r = requests.models.Response()
+        r.status_code = 200
+        r.raw = io.BytesIO(b"line one\nline two\nline three")
+        r.encoding = None
+
+        # Should not raise TypeError when no delimiter
+        result = list(r.iter_lines(decode_unicode=True))
+        assert result == ["line one", "line two", "line three"]
+        assert all(isinstance(x, str) for x in result)
+
+    def test_response_iter_lines_decode_unicode_false_none_encoding(self):
+        """Test iter_lines with decode_unicode=False, encoding=None returns bytes."""
+        import io
+        r = requests.models.Response()
+        r.status_code = 200
+        r.raw = io.BytesIO(b"line one\nline two\nline three")
+        r.encoding = None
+
+        # Should return bytes when decode_unicode=False
+        result = list(r.iter_lines(decode_unicode=False, delimiter="\n"))
+        assert result == [b"line one", b"line two", b"line three"]
+        assert all(isinstance(x, bytes) for x in result)
+
     def test_response_context_manager(self, httpbin):
         with requests.get(httpbin("stream/4"), stream=True) as response:
             assert isinstance(response, requests.Response)
